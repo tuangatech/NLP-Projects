@@ -1,0 +1,47 @@
+# General purpose libraries
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+scipy
+tqdm
+
+# Models
+xgboost
+
+# Deep Learning frameworks
+# torch
+# torchvision==0.15.2
+# torchaudio==2.0.2
+# tensorflow==2.13.0
+
+# NLP-specific libraries
+nltk
+transformers
+openai
+haystack-ai
+sentence-transformers
+# spacy  # error, cannot install 
+# gensim
+# textblob==0.17.1
+# sentencepiece==0.1.99
+
+# Pre-trained Model Support
+# huggingface_hub
+
+# Augmentation & Text Processing
+deep_translator
+
+# Miscellaneous
+pytz						# timezone for logging
+imblearn				# SMOTE Oversampling
+requests				# making HTTP requests
+dotenv					# loading environment file
+pathlib					# Path to a file
+pypdf					# read pdf
+# jupyterlab
+# notebook
+# ipython
+
+# Python's standard libraries: os, datetime, json, re, difflib
