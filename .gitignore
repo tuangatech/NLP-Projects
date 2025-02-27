@@ -14,3 +14,8 @@ __pycache__/
 # Ignore logs and temporary files
 *.log
 *.tmp
+
+# Ignore model files
+*.pth
+Intent Detection/glove/glove.6B.100d.txt
+requirements.txt
