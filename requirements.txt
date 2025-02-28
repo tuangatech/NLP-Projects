@@ -22,8 +22,8 @@ transformers
 openai
 haystack-ai
 sentence-transformers
-gensim
-# spacy  # error, cannot install 
+# gensim					# error, cannot install 
+# spacy  					# error, cannot install 
 # textblob==0.17.1
 # sentencepiece==0.1.99
 
