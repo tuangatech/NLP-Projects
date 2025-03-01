@@ -12,9 +12,7 @@ xgboost
 
 # Deep Learning frameworks
 torch
-# torchvision==0.15.2
-# torchaudio==2.0.2
-# tensorflow==2.13.0
+# tensorflow  			# not working with Python 3.13
 
 # NLP-specific libraries
 nltk
@@ -23,7 +21,7 @@ openai
 haystack-ai
 sentence-transformers
 # gensim					# error, cannot install 
-# spacy  					# error, cannot install 
+# spacy  					# dependency issues, cannot install 
 # textblob==0.17.1
 # sentencepiece==0.1.99
 
