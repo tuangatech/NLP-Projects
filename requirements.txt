@@ -1,40 +1,63 @@
-# General purpose libraries
-numpy==2.0.2
-pandas
-scikit-learn
-matplotlib
-seaborn
-scipy
-tqdm
+# ==============================================
+# General Purpose Libraries
+# ==============================================
+numpy==2.0.2               # Fundamental package for numerical computations in Python.
+pandas                     # Data manipulation and analysis library.
+scikit-learn               # Machine learning library for classification, regression, and clustering.
+matplotlib                 # Plotting and visualization library.
+seaborn                    # Statistical data visualization built on top of matplotlib.
+scipy                      # Library for scientific and technical computing.
+tqdm                       # Progress bar for loops and iterables.
 
-# Models
-xgboost
+# ==============================================
+# Machine Learning Models
+# ==============================================
+xgboost                    # Optimized distributed gradient boosting library for machine learning.
 
-# Deep Learning frameworks
-torch
-tensorflow  			# not working with Python 3.13
+# ==============================================
+# Deep Learning Frameworks
+# ==============================================
+torch                      # PyTorch: Deep learning framework with GPU support.
+tensorflow                 # TensorFlow: Deep learning framework (not compatible with Python 3.13).
 
-# NLP-specific libraries
-nltk
-transformers
-openai
-haystack-ai
-sentence-transformers
-# gensim				# error, Microsoft Visual C++ 14.0 or greater is required
-spacy  					# dependency: numpy 2.0.2
+# ==============================================
+# NLP-Specific Libraries
+# ==============================================
+nltk                       # Natural Language Toolkit for text processing and analysis.
+transformers               # Library for state-of-the-art NLP models (e.g., BERT, GPT).
+openai                     # OpenAI API client for accessing GPT models.
+haystack-ai                # Framework for building search systems and QA pipelines.
+sentence-transformers      # Library for sentence, paragraph, and image embeddings.
+# gensim                   # Library for topic modeling and document similarity (requires Microsoft Visual C++ 14.0+).
+spacy                      # Industrial-strength NLP library (depends on numpy 2.0.2).
 
+# ==============================================
 # Pre-trained Model Support
-# huggingface_hub
+# ==============================================
+# huggingface_hub          # Client library for interacting with Hugging Face's model hub.
 
+# ==============================================
 # Augmentation & Text Processing
-deep_translator
+# ==============================================
+deep_translator            # Library for text translation
 
+# ==============================================
 # Miscellaneous
-pytz						# timezone for logging
-imblearn				# SMOTE Oversampling
-requests				# making HTTP requests
-dotenv					# loading environment file
-pathlib					# Path to a file
-pypdf					# read pdf
+# ==============================================
+pytz                       # Library for timezone handling (useful for logging).
+imblearn                   # Library for handling imbalanced datasets (e.g., SMOTE oversampling).
+requests                   # Library for making HTTP requests.
+dotenv                     # Library for loading environment variables from `.env` files.
+pathlib                    # Library for working with file paths in an object-oriented way.
+pypdf                      # Library for reading and manipulating PDF files.
 
-# Python's standard libraries: random, os, datetime, warnings, json, re, difflib
+# ==============================================
+# Python's Standard Libraries
+# ==============================================
+# random                  # Module for generating random numbers and selections.
+# os                      # Module for interacting with the operating system.
+# datetime                # Module for handling dates and times.
+# warnings                # Module for issuing warning messages.
+# json                    # Module for working with JSON data.
+# re                      # Module for regular expressions.
+# difflib                 # Module for comparing sequences (e.g., text differences).
