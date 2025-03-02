@@ -1,5 +1,5 @@
 # General purpose libraries
-numpy
+numpy==2.0.2
 pandas
 scikit-learn
 matplotlib
@@ -12,7 +12,7 @@ xgboost
 
 # Deep Learning frameworks
 torch
-# tensorflow  			# not working with Python 3.13
+tensorflow  			# not working with Python 3.13
 
 # NLP-specific libraries
 nltk
@@ -20,10 +20,8 @@ transformers
 openai
 haystack-ai
 sentence-transformers
-# gensim					# error, cannot install 
-# spacy  					# dependency issues, cannot install 
-# textblob==0.17.1
-# sentencepiece==0.1.99
+# gensim				# error, Microsoft Visual C++ 14.0 or greater is required
+spacy  					# dependency: numpy 2.0.2
 
 # Pre-trained Model Support
 # huggingface_hub
@@ -38,8 +36,5 @@ requests				# making HTTP requests
 dotenv					# loading environment file
 pathlib					# Path to a file
 pypdf					# read pdf
-# jupyterlab
-# notebook
-# ipython
 
 # Python's standard libraries: random, os, datetime, warnings, json, re, difflib
