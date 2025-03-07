@@ -41,6 +41,10 @@ spacy                      # Industrial-strength NLP library (depends on numpy 2
 # ==============================================
 deep_translator            # Library for text translation
 
+# AWS
+boto3
+#sagemaker
+
 # ==============================================
 # Miscellaneous
 # ==============================================
