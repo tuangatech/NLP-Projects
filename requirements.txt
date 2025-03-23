@@ -8,6 +8,7 @@ matplotlib                 # Plotting and visualization library.
 seaborn                    # Statistical data visualization built on top of matplotlib.
 scipy                      # Library for scientific and technical computing.
 tqdm                       # Progress bar for loops and iterables.
+joblib
 
 # ==============================================
 # Machine Learning Models
@@ -60,6 +61,7 @@ pypdf                      # Library for reading and manipulating PDF files.
 # ==============================================
 # random                  # Module for generating random numbers and selections.
 # os                      # Module for interacting with the operating system.
+# io
 # datetime                # Module for handling dates and times.
 # warnings                # Module for issuing warning messages.
 # json                    # Module for working with JSON data.
