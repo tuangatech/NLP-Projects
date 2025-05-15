@@ -18,7 +18,7 @@ xgboost                    # Optimized distributed gradient boosting library for
 # ==============================================
 # Deep Learning Frameworks
 # ==============================================
-torch                      # PyTorch: Deep learning framework with GPU support.
+torch==2.2.0               # PyTorch: Deep learning framework with GPU support.
 tensorflow                 # TensorFlow: Deep learning framework (not compatible with Python 3.13).
 
 # ==============================================
