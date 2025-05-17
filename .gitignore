@@ -1,9 +1,9 @@
 # Ignore virtual environment folder
 venv/
+*venv/
 
 # Ignore environment variables file
 .env
-requirements.txt
 
 # Ignore compiled Python files
 __pycache__/
