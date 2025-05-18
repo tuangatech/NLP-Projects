@@ -8,7 +8,7 @@ uvicorn backend.api:app --host 0.0.0.0 --port 8000 --reload &
 FASTAPI_PID=$!
 
 # Wait for FastAPI to be ready
-until curl -s http://localhost:8000/healthz > /dev/null; do
+until python -c "import requests; requests.get('http://localhost:8000/healthz', timeout=1)" &>/dev/null; do
   echo "> Waiting for FastAPI to start..."
   sleep 3
 done
