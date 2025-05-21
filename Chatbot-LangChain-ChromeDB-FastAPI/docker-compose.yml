@@ -2,8 +2,8 @@
 services:
   # ChromaDB vector store service
   chromadb:
-    # image: chromadb/chroma:1.0.9 # Uses the official ChromaDB image (check for latest stable version)
-    build:
+    # image: chromadb/chroma:latest # Uses the official ChromaDB image (check for latest stable version)
+    build:  # custom build as the official image (Alpine Linux) does not support 'curl'
       context: ./chromadb # Build the Docker image from the Dockerfile in the /chroma directory
       dockerfile: Dockerfile
     container_name: rag_chromadb_container
@@ -19,10 +19,12 @@ services:
       - ANONYMIZED_TELEMETRY=false # Opt out of telemetry
     healthcheck: # Defines a health check for the ChromaDB service
       test: ["CMD-SHELL", "curl -s http://localhost:8000/api/v2/heartbeat | grep -q 'heartbeat'"]
-      interval: 10s # How often to run the health check
-      timeout: 20s # How long to wait for the health check to complete
-      retries: 5 # Number of retries before marking as unhealthy
-      start_period: 60s # Grace period for the service to start before health checks begin
+      # curl does not work with Alpine Linux (official ChromaDB image)
+      # test: ["CMD-SHELL", "python3 -c \"import urllib.request; import sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/api/v2/heartbeat').getcode() == 200 else sys.exit(1)\""]
+      interval: 20s # How often to run the health check
+      timeout: 10s # How long to wait for the health check to complete
+      retries: 3 # Number of retries before marking as unhealthy
+      start_period: 40s # Grace period for the service to start before health checks begin
     networks:
       - rag_network # Connects the service to the custom network
     restart: unless-stopped
@@ -35,7 +37,7 @@ services:
     container_name: rag_ingestion_container
     depends_on:
       chromadb:
-        condition: service_started # service_healthy Wait until ChromaDB is ready
+        condition: service_healthy #  service_started Wait until ChromaDB is ready
     volumes:
       - ./pdfs:/app/pdfs # Mount local PDFs into container
       - ./.env:/app/.env # Mount local .env file into container
@@ -57,18 +59,20 @@ services:
       - "8501:8501" # Maps host port 8501 to container port 8501 (for Streamlit)
     volumes:
       - ./.env:/app/.env  # Mount .env file for dotenv
+      - chroma_data:/chroma_data
     environment:
+      - PERSIST_DIRECTORY=/chroma_data
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
     depends_on:
       chromadb: # Ensures chromadb service is started before the app service
-        condition: service_healthy # Waits for chromadb to be healthy (requires healthcheck in chromadb service)
+        condition: service_healthy #  service_started Waits for chromadb to be healthy (requires healthcheck in chromadb service)
     networks:
       - rag_network # Connects the service to the custom network
 
 volumes:
   # Named volume for ChromaDB persistence
-  chroma_data: # Renamed for clarity to distinguish from the old 'chroma_data'
+  chroma_data:
     driver: local # Specifies the local driver for the volume
 
 networks:
