@@ -3,9 +3,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies, including ca-certificates for HTTPS requests to download tiktoken
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc g++ && \
+    apt-get install -y ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Install app-specific dependencies, with build context is set to ./app in Docker-compose.yml
