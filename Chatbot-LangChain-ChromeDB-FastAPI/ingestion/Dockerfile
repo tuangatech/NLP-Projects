@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy ingestion code
 COPY ingest.py .
+COPY config.py .
+COPY pdf_processor.py .
+COPY vector_store.py .
 
 # Entrypoint for ingestion
 ENTRYPOINT ["python", "ingest.py"]
