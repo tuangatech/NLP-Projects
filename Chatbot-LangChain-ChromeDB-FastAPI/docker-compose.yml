@@ -14,8 +14,8 @@ services:
     environment:
       - IS_PERSISTENT=true # Enable persistent mode
       - PERSIST_DIRECTORY=/chroma_data # Tell Chroma where to store data
-      - CHROMA_SERVER_HOST=chromadb # For internal service communication
-      - CHROMA_SERVER_HTTP_PORT=8000
+      # - CHROMA_SERVER_HOST=chromadb # For internal service communication
+      # - CHROMA_SERVER_HTTP_PORT=8000
       - ANONYMIZED_TELEMETRY=false # Opt out of telemetry
     healthcheck: # Defines a health check for the ChromaDB service
       test: ["CMD-SHELL", "curl -s http://localhost:8000/api/v2/heartbeat | grep -q 'heartbeat'"]
@@ -39,6 +39,7 @@ services:
       chromadb:
         condition: service_healthy #  service_started Wait until ChromaDB is ready
     volumes:
+      - chroma_data:/chroma_data # Mounts the same named volume as ChromaDB for data sharing
       - ./pdfs:/app/pdfs # Mount local PDFs into container
       - ./.env:/app/.env # Mount local .env file into container
     environment:
@@ -62,7 +63,7 @@ services:
       - chroma_data:/chroma_data
     environment:
       - PERSIST_DIRECTORY=/chroma_data
-      - CHROMA_HOST=chromadb
+      - CHROMA_HOST=chromadb # Connect to ChromaDB via service name
       - CHROMA_PORT=8000
     depends_on:
       chromadb: # Ensures chromadb service is started before the app service
