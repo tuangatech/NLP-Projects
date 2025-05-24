@@ -1,9 +1,8 @@
 # Handles the ingestion pipeline: loading PDFs, splitting text, creating embeddings, and storing in ChromaDB.
-
 import logging
-from pdf_processor import process_pdf
 from config import PDF_DIR
-from vector_store import connect_to_chromadb, get_or_create_collection, add_chunks_to_collection
+from pdf_processor import process_pdf
+from vector_store import connect_to_chromadb, create_collection, add_chunks_to_collection
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -34,8 +33,9 @@ def run_ingestion(force_reingest: bool = False):
         return
 
     logging.info(f"Total chunks to embed and add: {len(all_chunks)}")
+    
     client = connect_to_chromadb()
-    collection = get_or_create_collection(client, force_reingest=force_reingest)
+    collection = create_collection(client, force_reingest=force_reingest)
     add_chunks_to_collection(collection, all_chunks)
 
     logging.info("Ingestion completed successfully.")
