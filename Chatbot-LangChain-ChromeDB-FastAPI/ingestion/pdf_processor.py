@@ -79,7 +79,7 @@ def process_pdf(file_path: Path) -> List[Dict[str, Any]]:
     current_section_content = ""
     current_section_pages = []
 
-    for page_num_fitz in range(1, 5):  # Process only first 5 pages for testing 5 = len(doc)
+    for page_num_fitz in range(10):  # Process only first 10 pages for testing 5 = len(doc)
         page = doc.load_page(page_num_fitz)
         page_number = page_num_fitz + 1
         blocks = page.get_text("blocks")
