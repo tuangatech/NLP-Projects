@@ -12,9 +12,7 @@ st.title("TaxBot - Ask Me About Tax!")
 # Chat history in session state (each item is a full exchange)
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-# Initialize temporary question storage
-# if "pending_question" not in st.session_state:
-#     st.session_state.pending_question = None
+    
 if "show_spinner" not in st.session_state:
     st.session_state.show_spinner = False
 
@@ -43,7 +41,7 @@ def get_response():
                 source_docs = json_response.get("source_documents", [])
 
                 if answer == NO_ANSWER:
-                    source_docs = []
+                    source_docs = []        # If no answer, why do we need source docs?
             except requests.exceptions.JSONDecodeError:
                 answer = "⚠️ Invalid response from backend."
                 source_docs = []
@@ -70,7 +68,7 @@ def get_response():
 with st.form(key="chat_form", clear_on_submit=True):
     user_input = st.text_input(
         "Ask a question about tax filing:",
-        value="What can TAS help me with? What information that LITC can provide? Tell me what are taxpayer rights?",
+        value="What can TAS help me with?", #  What information that LITC can provide? Tell me what are taxpayer rights?
         key="input_text"
     )
     col1, col2 = st.columns([0.8, 0.2])
