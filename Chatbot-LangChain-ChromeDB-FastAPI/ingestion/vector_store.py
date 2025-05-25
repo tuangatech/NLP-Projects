@@ -3,7 +3,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 import hashlib
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Collection
 import logging
 from config import CHROMA_HOST, CHROMA_PORT, COLLECTION_NAME, OPENAI_API_KEY, EMBEDDING_MODEL, CHROMA_BATCH_SIZE
 
@@ -19,7 +19,7 @@ def connect_to_chromadb():
         return
     return client
 
-def get_or_create_collection(client, force_reingest=False):
+def create_collection(client, force_reingest=False) -> Collection:
     openai_ef = embedding_functions.OpenAIEmbeddingFunction(
         api_key=OPENAI_API_KEY,
         model_name=EMBEDDING_MODEL
@@ -29,6 +29,17 @@ def get_or_create_collection(client, force_reingest=False):
         embedding_function=openai_ef,
         metadata={"hnsw:space": "cosine"}
     )
+
+    # Check if collection already has data and was previously ingested
+    metadata = collection.metadata or {}
+    last_ingested = metadata.get("last_ingested_at", None)
+
+    # Check if the collection has been previously ingested and no "--force" flag
+    if last_ingested and not force_reingest:
+        print(f"Collection '{COLLECTION_NAME}' already contains data (last ingested at {last_ingested}).")
+        print("Use --force to re-ingest.")
+        exit(0)  # Skip ingestion
+
     if force_reingest:
         # Get all IDs and delete them. This is safer than deleting the collection if it has specific metadata.
         count = collection.count()
@@ -63,6 +74,7 @@ def add_chunks_to_collection(collection, chunks):
         model_name=EMBEDDING_MODEL
     )(documents)
 
+    # Add document batches into the collection
     for i in range(0, len(documents), CHROMA_BATCH_SIZE):
         batch = slice(i, i + CHROMA_BATCH_SIZE)
         collection.add(
@@ -74,6 +86,7 @@ def add_chunks_to_collection(collection, chunks):
         logger.info(f"Added batch {i // CHROMA_BATCH_SIZE + 1}")
 
     try:
+        # Update collection metadata with last ingested time and other info
         collection.modify(metadata={
             "last_ingested_at": datetime.now().isoformat(),
             "total_chunks": str(len(chunks)),
