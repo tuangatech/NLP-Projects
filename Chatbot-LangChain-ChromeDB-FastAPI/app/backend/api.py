@@ -10,6 +10,7 @@ from sentence_transformers import CrossEncoder
 from dotenv import load_dotenv
 import numpy as np
 import os
+import re
 from pprint import pprint
 from typing import List, Optional, Dict
 from .vectorstore import get_retriever
@@ -28,6 +29,11 @@ class QueryRequest(BaseModel):
         max_length=100  # Maximum length of the question
     )
     chat_history: List[Dict[str, str]] = []
+
+# Function to sanitize input text
+def sanitize_input(text: str) -> str:
+    # Remove control characters and extra whitespace
+    return re.sub(r'[\x00-\x1F\x7F]', '', text).strip()
 
 # Load environment variables from .env file
 load_dotenv("/app/.env")
@@ -149,7 +155,7 @@ chain = (
 
 @app.post("/query")
 async def query_rag(request: QueryRequest):
-    question = request.question
+    question = sanitize_input(request.question)
     chat_history = request.chat_history
     logger.info(f"Question: {question}")
 
