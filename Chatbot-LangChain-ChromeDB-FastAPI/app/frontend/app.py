@@ -31,7 +31,7 @@ def get_response():
                 "question": user_input,
                 "chat_history": formatted_history
             },
-            timeout=20
+            timeout=10
         )
 
         if response.status_code == 200:
