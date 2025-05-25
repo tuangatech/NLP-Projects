@@ -8,6 +8,9 @@ backup/
 # Ignore environment variables file
 .env
 
+# Ignore diagram file
+.pptx
+
 # Ignore compiled Python files
 __pycache__/
 
