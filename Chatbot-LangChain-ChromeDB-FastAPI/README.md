@@ -291,41 +291,40 @@ This gives the frontend enough to not just answer, but also explain why that ans
 
 This FastAPI backend is more than just an API wrapper—it’s the control center for the entire RAG pipeline. By breaking functionality into composable steps (retrieval, reranking, prompting, validation), we keep logic easy to follow and debug. If you need to swap in a different reranker, change the embedding model, or try a new LLM, there would be no problem as each part is modular and self-contained, making the change straightforward. It's perfect for experimentation in a real-world RAG setup.
 
-========
 
 ### Streamlit Frontend
-For user interaction, a Streamlit frontend is utilized. To simplify the deployment for this local setup, both the FastAPI backend and the Streamlit frontend will reside within the same Docker container, built from a single Dockerfile that includes all necessary dependencies.
+I built frontend for this chatbot with Streamlit to make it quick to prototype and very simple UI for users to interact with. To simplify local development, I bundled both FastAPI backend and Streamlit app into a single Docker container.
 
+The UI support realtime Q&A, loading spinner for better UX, session-based chat history and display of source document per answer. Users can ask question via a text input at the top of the page. As soon as the user hits Send, a spinner appears to show that the backend is processing the request - instance feedback improves user experience.
 
-**2.2 Memory & Session**
-- Hybrid memory: 1000 token‑limit + last k‑turns (k = 5) strategy for fast, short chats
-- Session persistence: dump conversation logs to SQLite
-  - Helpful for debugging
-  - Can resurrect halfway‑done sessions
-- Conversation memory is keyed by a unique session_id
-- building a RAG bot with conversational memory . Including 3 last questions and answers in the prompt is a good approach , especially for short-term memory use cases. It helps the LLM understand context and provide more coherent, relevant responses over multiple turns. I don't persist chat history across sessions, like storing chat history in SQLite, so if user refresh the page, it's gone.
-  - Frontend (frontend/app.py) – Send chat history along with the question
-  - Backend (backend/api.py) – Accept chat history, format it into the prompt, and pass to LLM
-- sending chat history via the GET method (as query parameters) has length limitations , and it's not the best practice for sending sensitive or large data like chat history. Use POST allows to send a JSON body which is more secure, easier to parse, longer history; POST is used for submitting data.
+Under the hood, the app sends both the current question and recent chat history to the backend via a POST request. This avoids the limitations of GET (e.g., query length limits, URL encoding issues) and allows sending a clean, structured JSON payload.
 
-
-
-2.6 Hallucination Checks & Citations
-- Citation parser: pull page number, section title metadata from chunks → append [1] style refs. Citation formatting improves user trust.
-- Verifier step: “Does the answer match the retrieved context chunks?” via embedding‑cosine threshold for basic validation for no cost. Embedding similarity validation flags hallucinations before delivery. Function to validate the answer based on the context and the answer provided by the LLM. This is a simple cosine similarity check between the answer and the context
-- Output Parsing: Use `StrOutputParser()` or custom logic to format responses.
-
-
-
-Once all three containers (ChromaDB, ingestion, and app) are running and ingestion finishes, you can stop or remove the ingestion container. The app will continue working.
-
-```bash
-docker compose up -d --build    # To start all 3 containers
-docker compose down ingestion   # To remove only ingestion container
+```python
+  response = requests.post(
+      BACKEND_URL,
+      json={
+          "question": user_input,
+          "chat_history": formatted_history
+      },
+      timeout=10
+  )
+  json_response = response.json()
+  answer = json_response.get("answer", "No answer found.")
+  source_docs = json_response.get("source_documents", [])
 ```
-Just be cautious: if instead of `docker compose stop`, I run `docker compose down` without specifying a service, I will remove all containers and volumes, including the ChromaDB data .
 
-**Workflow Summary**
+I include the last 3 rounds of Q&A in each request—this short-term memory helps the LLM maintain context over multi-turn conversations. The chat history is kept in st.session_state.chat_history (as a list of dictionaries) for simplicity. There's no long-term persistence (e.g., database), so refreshing the page clears the session.
+
+If the backend includes source documents in the response, they're shown in an expandable “Source Documents” section. This adds transparency and helps users verify the accuracy of answers—essential for legal, compliance, or finance-focused bots.
+
+
+### Hallucination Checks & Citations
+To build trust and reduce misinformation, the system includes basic hallucination detection and citation support:
+- Citation Formatting: When documents are retrieved, metadata like section titles and page numbers are extracted. These are formatted into references like “Source 1: Page 12, Section B” and appended to the LLM’s answer. This adds traceability for each fact.
+- Answer Verification: A lightweight “hallucination check” is run by comparing the generated answer to the retrieved context using cosine similarity of embeddings. If the answer strays too far from the context (below a similarity threshold), it gets flagged. While basic, this embedding-based check costs nothing extra and catches obvious mismatches - it's a good first layer of defense.
+
+
+### Workflow Summary
 
 Run the ingestion container once (or occasionally when new documents are added). Thanks to Docker Compose’s persistent volume, the data outlives the container. As long as the volume exists, ChromaDB will reload the collection on restart.
 
@@ -333,175 +332,14 @@ After ingestion completes:
 - Vector data is stored persistently in ChromaDB.
 - You can stop or remove the ingestion container.
 
+```bash
+docker compose up -d --build    # To start all 3 containers
+docker compose down ingestion   # To remove only ingestion container
+```
+Just be cautious: if instead of `docker compose stop`, I run `docker compose down` without specifying a service, I will remove all containers and volumes, including the ChromaDB data .
+
 To serve your chatbot:
 - Keep the ChromaDB container running (for vector store access).
 - Keep the app container running (your chatbot/frontend/backend).
 
 This setup allows your chatbot to query the existing collection without re-running ingestion each time.
-
-- Manual Ingestion Trigger : Add an endpoint /ingest in the app to trigger re-ingestion without restarting ingestion containers.
-
-Access the services:
-```bash
-- FastAPI Docs : http://localhost:8000/docs, http://127.0.0.1:8000/docs    # access FastAPI with browser 
-- curl "http://localhost:8000/query?question=What+is+the+main+topic?"
-- Streamlit UI : http://localhost:8501         # access Streamlit with browser 
-```
-
-
-### Test FastAPI app outside of the Docker first
-- Update file `api2.py` in root folder: 
-  - path for .env
-  - xx port for ChromaDB to 8001 --> Fetch from persistent data, NO need to connect to DB
-- Test api.py outside the Docker container. Uvicorn running on http://127.0.0.1:8000 
-```bash
-uvicorn api2:app --reload
-```
-
-### 3. Benefits
-- Hot‑swap PDFs without Docker image rebuilds or redundant re-embedding
-- Persistent data: embeddings + chat logs survive reboots, backed up via rsync
-- Docker Compose and LangChain foster a clean design with clearly separated, maintainable services (vector DB, API, and UI).
-- Fast prototyping: Streamlit + FastAPI in one image → minimal infra overhead
-- Context‑aware chats: Real conversational memory (persisted in SQlite), re-ranking plus decent OpenAI models means it should actually understand context.
-- Cost‑friendly for small/local projects (no managed vector DB bills)
-- Concurrency‐ready: FastAPI async + HNSW indexes scale to multiple users
-- Safety nets: input validation + hallucination checks + citation formatting
-- Responsive UX: streaming gives that “chat‑app” feel instead of batch replies
-
-Swagger UI: http://127.0.0.1:8000/docs
-
-### IMPROVEMENT IDEAS
-- in conversational AI, coreference resolution is used to resolve pronouns or phrases like "the first approach" to their antecedents. Maybe integrating a coreference resolution step could help. However, that might add complexity. We cannot just Extract key terms or entities from the chat history and include them in the augmented query, that could be many terms from questions and anwers, and will add noises to the database query.
-
-```
-Q1- How do I decide whether to take the standard deduction or itemize my deductions? 
-Q2- Explain me the first approach!
-```
-- ChromaDB persistent volume
-- For production apps, consider storing chat history in a database, so the app can access chat history across sessions
-- Store feedback Good, Bad
-
-
-
-### 5. Prompt Template: Guiding the LLM
-- Structure
-```
-System Prompt: You are a helpful AI assistant. Answer the user's query based ONLY on the provided context documents. If the information is not in the context, say "I do not have enough information to answer that." List the source file and page number for your answer.
-
-Retrieved Context: ...
-Chat History: ...
-```
-- Few-Shot Examples (Advanced): If you have common query types, you can **include a few examples of good question-answer pairs** in the prompt.
-
-### 6. LLM: The Brain
-- LLM: `gpt-4o-mini-2024-07-18`: $0.15 per 1M input tokens.
-- Temperature: For factual Q&A from context, use a lower temperature (e.g., 0.0 - 0.3) to reduce creativity/hallucinations.
-- Streaming: Use streaming APIs for a better user experience (words appear as they are generated). LangChain supports this.
-- Error Handling: Implement retries and fallbacks for LLM API calls.
-
-### 7. Post-Processing: Refining the Output
-- Citation Generation: post-processing step can parse these citations from answer.
-- Verification: 
-  - Extract the cited chunk(s).
-  - Make **another LLM** call asking it to verify if the generated answer statement is supported by only that specific cited chunk. This adds latency but boosts faithfulness.
-
-### 8. Deployment: Serving the Chatbot
-- API Layer (FastAPI):
-  - Best Practice (Efficiency): Use FastAPI's async def for your endpoints to handle I/O-bound operations (LLM calls, vector DB queries) concurrently without blocking.
-  - Implement proper request validation (using Pydantic models).
-- LangChain Runnable: Use LangChain Expression Language (LCEL) to define your chain as a Runnable. This makes it easy to invoke, stream, and batch.
-- Containerization (Docker): Standard practice.
-Hosting with ECS/Fargate: Good for long-running applications, persistent WebSocket connections, more control. Autoscaling based on CPU/memory or custom metrics.
-- Best Practice: Ensure proper health checks for your FastAPI application (e.g., a /health endpoint ECS/ALB can ping).
-
-### Streamlit:
-- Streamlit and FastAPI can coexist in the same Python environment.
-- Runs FastAPI and Streamlit in parallel via entrypoint
-- Streamlit connects to FastAPI endpoints for RAG responses
-- UX : Add a "Regenerate" button and display retrieved chunks in an expandable sidebar for transparency.
-- If different container: challenges of cross-container networking setup (e.g., CORS, service discovery).
-- When to split? If you need horizontal scaling (e.g., multiple Streamlit instances).
-
-### Local Dev Tools :
-- Use dotenv to manage secrets (e.g., OPENAI_API_KEY).
-- Add a /reload endpoint to refresh ChromaDB data without restarting.
-
-### Others
-1. Monitoring & Logging:
-
-- Log user queries, retrieved chunks, final LLM responses, latencies of each step (retrieval, LLM generation), token counts.
--  LangSmith is excellent for tracing and debugging LangChain applications.
-
-2. Evaluation Framework:
-
-- Create a "golden dataset" of question-answer pairs based on your PDFs.
-- Metrics: RAGAs (faithfulness, answer relevancy, context precision/recall)
-
-3. Security: Sanitize inputs.
-
-### Concerns:
-- How to detect "How are you?" with questions? Or just type question only?
-
-
-=======
-
-Building a RAG Chatbot with Conversational Memory for local Deployment. Chatbot's knowledge comes from some pdf input files. Tech stack includes:
-- Orchestration framework: LangChain
-- PDF loading and parsing: `PyMuPDFLoader`
-- Mount the folder of PDF files as a volume (outside the container) instead of baking them into the Docker image
-- Text Splitting: pick the best between `RecursiveCharacterTextSplitter` and LangChain `TextSplitter`
-- Chunk sizes 500 tokens and overlap 100 tokens
-- Embedding model: OpenAI `text-embedding-ada-002`
-- Vector database: Self-hosted ChromaDB with persistent volume, avoid copying ChromaDB into the Docker Image. Data is indexed by HNSW. A way to backup data, not regenerating data everytime restarting docker container.
-- Separating the app and ChromaDB into distinct containers using `Docker Compose` with a single docker-compose.yml to coordinate the services
-- Avoid Re-Embedding PDFs, skip ingestion if ChromaDB already exists
-- Adding health checks in Docker Compose to ensure ChromaDB is ready before starting the app
-- Orchestration: Manual Ingestion Trigger for new files
-- LLM: OpenAI `gpt-4o-mini-2024-07-18`
-- Backend RAG logic and APIs with FastAPI. Add /health endpoint in FastAPI
-- Frontend layer with Streamlit. Run Streamlit and FastAPI in the same container for simplicity. Use a single Dockerfile with both dependencies.
-- Conversational Memory: LangChain's memory components
-- Session Persistence: Store chat history in SQLite, in the same container with FastAPI and StreamLit?
-
-
-AWS Deployment Options: to run your embedding model, vector database, and serve the API - AWS ECS (Fargate) with Docker
-Framework: LangChain for orchestration
-Memory: LangChain's ConversationBufferMemory
-Frontend: Streamlit or Gradio deployed on the same instance
-
-### Implementation Architect
-1. PDF Processing Pipeline
-   └── Document loaders (PyPDF2/pdfplumber)
-   └── Text chunking (LangChain TextSplitter)
-   └── Embedding generation
-   └── Storage in Chroma DB
-
-2. Chat System
-   └── User query embedding
-   └── Chroma DB similarity search
-   └── Relevant context retrieval
-   └── Conversation memory (last N exchanges)
-   └── OpenAI API prompt construction & completion
-   └── Response to user
-
-
-Debug:
-```bash
-docker-compose up --build chromadb ingestion app   # starts chromadb and app services first
-docker-compose run --rm ingestion   # run ingestion manually
-docker-compose run --rm ingestion python ingest.py --force    # re-ingest after adding new PDFs
-docker-compose down   # stop all containers
-docker-compose down app
-docker compose down --volumes=false # Keeps volumes explicitly > NO
-docker compose stop     # Stops containers but keeps volumes and networks
-```
-
-After building successfully:
-```bash
-docker-compose ps             # check Container status
-docker ps -a    # list all docker containers even they are existed because of errors --> to debug
-# curl http://localhost:8000/api/v2/collections   # check documents in the ChromaDB collection
-# curl http://localhost:8001/api/v1/collections/rag_documents
-# curl "http://localhost:8000/api/v2/collections/rag_documents/get?limit=5"
-```
