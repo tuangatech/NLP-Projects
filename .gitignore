@@ -20,6 +20,7 @@ __pycache__/
 # Ignore logs and temporary files
 *.log
 *.tmp
+*.pptx
 
 # Ignore model files
 *.pth
