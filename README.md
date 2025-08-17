@@ -7,12 +7,12 @@ Welcome! Below are hands-on NLP side projects I've built to deepen my skills and
 ## 1. RAG Chatbot with Conversational Memory using LangChain
 
 **Use Case**  
-A local-first chatbot that supports contextual conversations on tax guidance documents (Forms 1040 & 1065). It demonstrates how a full RAG pipeline can run entirely on your machine — no cloud, no fuss.
+A chatbot that supports contextual conversations on tax guidance documents (Forms 1040 & 1065). Users can chat "Tell me what are taxpayer rights?", the chatbot will find relevant information from 2 documents and respond with citation to users.
 
 **Tech Stack**  
 - LangChain for chaining chunking, embedding, prompting  
 - ChromaDB for semantic retrieval  
-- FastAPI backend with /query and /healthcheck endpoints  
+- FastAPI backend with `/query` and `/healthcheck` endpoints  
 - Streamlit frontend with real-time response UI  
 - Docker Compose for local orchestration
 
@@ -38,7 +38,7 @@ A book resale business needed to clean and enrich book data coming from inconsis
 Detect customer intent in messages like "How could I get my money back?" by mapping to intents like `get_refund`. Tailored for chatbot or support automation.
 
 **Tech Stack**  
-- Fine-tuned `RoBERTa` on a customer support dataset  
+- Fine-tuned `RoBERTa` on a customer support dataset
 - PyTorch + HuggingFace Transformers  
 - Training loop with early stopping and evaluation  
 - Jupyter/Colab for experimentation
