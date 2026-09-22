@@ -1,0 +1,12 @@
+{
+  "name": "intent-detection-jev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "classify": "node --env-file=.env.local classify.mts"
+  },
+  "dependencies": {
+    "ai": "latest",
+    "csv-parse": "latest"
+  }
+}

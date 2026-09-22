@@ -1,0 +1,27 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Node / AI SDK
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# Model artifacts / checkpoints
+*.pt
+*.bin
+*.safetensors
+checkpoints/
+models/
+
+# OS
+.DS_Store
+Thumbs.db
