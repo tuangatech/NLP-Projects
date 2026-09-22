@@ -1,6 +1,5 @@
-// Zero-shot / few-shot intent classification using Jev (typesafe-ai/jev) via Vercel AI Gateway.
-// Compares Jev's picks against the labeled intents in dataset/data_test.csv, as a baseline
-// against the fine-tuned RoBERTa model in the notebook.
+// Few-shot intent classification using Jev (typesafe-ai/jev) via Vercel AI Gateway.
+// Compares Jev's picks against the labeled intents in dataset/eval.csv.
 import { experimental_evaluate as evaluate } from 'ai';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parse } from 'csv-parse/sync';
@@ -99,16 +98,16 @@ async function runWithConcurrency<T, R>(
   return results;
 }
 
-const trainRows = loadCsv('dataset/data_train.csv');
-const testRows = loadCsv('dataset/data_test.csv');
+const exampleRows = loadCsv('dataset/examples.csv');
+const evalRows = loadCsv('dataset/eval.csv');
 
-const trainByIntent = groupByIntent(trainRows);
-const testByIntent = groupByIntent(testRows);
+const examplesByIntent = groupByIntent(exampleRows);
+const evalByIntent = groupByIntent(evalRows);
 
-// Few-shot criteria: each intent's description carries a handful of diverse real training
-// examples, since Jev's "choice" question has no dedicated few-shot examples field.
+// Few-shot criteria: each intent's description carries a handful of diverse examples pulled
+// from the example pool, since Jev's "choice" question has no dedicated few-shot examples field.
 const criteria: Record<string, string> = {};
-for (const [intent, rows] of trainByIntent) {
+for (const [intent, rows] of examplesByIntent) {
   const diverse = pickDiverseExamples(rows.map((r) => r.utterance), EXAMPLES_PER_INTENT);
   criteria[intent] = `e.g., ${diverse.map((u) => `"${u}"`).join('; ')}`;
 }
@@ -118,14 +117,14 @@ console.log('\n--- Jev criteria (sent as the "choice" question on every request)
 console.log(JSON.stringify(criteria, null, 2));
 console.log('--- end criteria ---\n');
 
-// Stratified sample of the test set: first N rows per intent, deterministic across runs.
+// Stratified sample of the eval set: first N rows per intent, deterministic across runs.
 const sample: Row[] = [];
-for (const rows of testByIntent.values()) {
+for (const rows of evalByIntent.values()) {
   sample.push(...rows.slice(0, SAMPLE_PER_INTENT));
 }
 
-console.log(`Loaded ${intents.length} intents, ${trainRows.length} train rows.`);
-console.log(`Evaluating ${sample.length} sampled test rows with ${MODEL}...`);
+console.log(`Loaded ${intents.length} intents, ${exampleRows.length} example-pool rows.`);
+console.log(`Evaluating ${sample.length} sampled eval rows with ${MODEL}...`);
 
 type Result = {
   utterance: string;

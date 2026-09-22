@@ -8,10 +8,10 @@ Two approaches to the same problem — classifying customer support utterances i
 
 | File | Rows | Purpose |
 |---|---|---|
-| `dataset/data_train.csv` | 6,539 | Training (RoBERTa) / few-shot examples (Jev) |
-| `dataset/data_test.csv` | 818 | Held-out evaluation |
+| `dataset/examples.csv` | 6,539 | Training data for RoBERTa (prior experiment) / few-shot example pool for Jev |
+| `dataset/eval.csv` | 818 | Held-out evaluation |
 
-(The original split also included `data_validation.csv`, used only for RoBERTa's early stopping — dropped since it serves no purpose for Jev's training-free approach.)
+(The original Kaggle split names these `data_train.csv` / `data_validation.csv` / `data_test.csv`. Renamed here to `examples.csv` / `eval.csv` since Jev does no training — `examples.csv` is really just the pool `pickDiverseExamples()` draws few-shot examples from. `data_validation.csv` is dropped entirely: it only served RoBERTa's early stopping and has no role in Jev's training-free approach.)
 
 Each row: `utterance, intent, category, tags`. 27 intents (e.g. `cancel_order`, `get_refund`, `track_order`), fairly balanced (~225–270 rows each in training).
 
@@ -24,7 +24,7 @@ Trains a `RobertaForSequenceClassification` head on top of `roberta-base`:
 - Training loop: AdamW + cross-entropy loss + cosine annealing LR schedule + gradient clipping.
 - Also explores text augmentation (synonym replacement via GloVe, back-translation, pattern-based paraphrasing) as a way to grow/diversify the training set, though augmented data isn't folded back into the training run in the notebook.
 
-**Result:** 99.76% validation accuracy (best epoch, 5/5). The notebook does not compute an aggregate accuracy on `data_test.csv` — it only spot-checks 10 random test rows (all correct), so there's no formal test-set number to cite for this approach. This asymmetry is worth keeping in mind when comparing against Jev's test-set accuracy below: the RoBERTa model was also directly trained on this data, so it isn't a fair apples-to-apples baseline — it's a full-supervision upper bound to keep in view.
+**Result:** 99.76% validation accuracy (best epoch, 5/5). The notebook does not compute an aggregate accuracy on the held-out test split — it only spot-checks 10 random test rows (all correct), so there's no formal test-set number to cite for this approach. This asymmetry is worth keeping in mind when comparing against Jev's eval accuracy below: the RoBERTa model was also directly trained on this data, so it isn't a fair apples-to-apples baseline — it's a full-supervision upper bound to keep in view.
 
 ## Approach 2: Jev (few-shot, no training)
 
@@ -36,7 +36,7 @@ Trains a `RobertaForSequenceClassification` head on top of `roberta-base`:
 
 1. **State** — the customer utterance being classified.
 2. **Question** — a single `choice` question named `intent`, whose `criteria` is a map of `{ intent_name: description }` for all 27 intents.
-3. **Few-shot grounding** — since the `choice` type has no dedicated examples field, each intent's description is built from 3 real training utterances for that intent, e.g.:
+3. **Few-shot grounding** — since the `choice` type has no dedicated examples field, each intent's description is built from 3 real example-pool utterances for that intent, e.g.:
    ```
    cancel_order: e.g., "would it be possible to cancel the order I made?"; "problem with cancelling orders"; "will you give me information about canceling an order?"
    ```
@@ -44,16 +44,16 @@ Trains a `RobertaForSequenceClassification` head on top of `roberta-base`:
 
 ### Diverse example selection
 
-The first version picked the first 3 training rows per intent verbatim — which, on inspection, were frequently near-duplicates ("cancelling order" / "cancel order" / "canceling the order"), giving the model weak, redundant grounding. This was replaced with **greedy farthest-point selection**: starting from the first example, each next example is the one with the lowest word-overlap (Jaccard similarity) to everything already picked, so the 3 examples per intent span different phrasings (question / complaint / info-request) instead of restating the same sentence. See `pickDiverseExamples()` in `classify.mts`.
+The first version picked the first 3 example-pool rows per intent verbatim — which, on inspection, were frequently near-duplicates ("cancelling order" / "cancel order" / "canceling the order"), giving the model weak, redundant grounding. This was replaced with **greedy farthest-point selection**: starting from the first example, each next example is the one with the lowest word-overlap (Jaccard similarity) to everything already picked, so the 3 examples per intent span different phrasings (question / complaint / info-request) instead of restating the same sentence. See `pickDiverseExamples()` in `classify.mts`.
 
 ### Evaluation setup
 
-- **Sample:** stratified — the first 6 rows per intent from `data_test.csv` (~162 rows across 27 intents), so every intent gets evaluated, not just the majority ones.
+- **Sample:** stratified — the first 6 rows per intent from `eval.csv` (~162 rows across 27 intents), so every intent gets evaluated, not just the majority ones.
 - **Concurrency:** 3 requests in flight, staggered with a 300ms minimum interval between dispatches (`throttle()`), to stay under the gateway's rate limits.
 - **Timeouts & retries:** each call gets a 20s timeout (`AbortController`) so one stuck request can't hang the whole batch; failures retry up to 2 more times with backoff (longer for `GatewayRateLimitError` specifically).
 - **Output:** live progress (`[N/162] predicted_intent`), a console summary (overall + per-intent accuracy), and `results/jev_predictions.csv` with one row per sample plus an accuracy summary appended as `#`-prefixed comment lines.
 
-**Result:** 98.1% accuracy (160/162 scored, 2 network errors) on the stratified test sample — competitive with RoBERTa's validation number, achieved with zero training and a handful of examples per intent.
+**Result:** 98.1% accuracy (160/162 scored, 2 network errors) on the stratified eval sample — competitive with RoBERTa's validation number, achieved with zero training and a handful of examples per intent.
 
 ## Setup
 
@@ -76,7 +76,8 @@ Prerequisites: Node.js 22.18+ (uses native TypeScript execution).
 ## Files
 
 ```
-dataset/                        Kaggle customer support intent dataset (train/test)
+dataset/examples.csv            Few-shot example pool (27 intents, ~225-270 rows each)
+dataset/eval.csv                Held-out evaluation set
 classify.mts                    Few-shot intent classification via Jev / AI Gateway
 results/jev_predictions.csv     Per-row Jev predictions + accuracy summary (generated)
 ```
