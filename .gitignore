@@ -28,3 +28,6 @@ __pycache__/
 *.txt
 
 AWS SageMaker.md
+
+# Keep the pip requirements file even though *.txt is ignored
+!requirements-intent.txt

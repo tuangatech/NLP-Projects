@@ -1,0 +1,26 @@
+# Setup (Windows + NVIDIA GPU): install the CUDA build of torch FIRST, otherwise pip/uv
+# pulls the CPU-only build from PyPI:
+#   uv venv --python 3.12
+#   uv pip install torch --index-url https://download.pytorch.org/whl/cu124
+#   uv pip install -r requirements-intent.txt ipykernel
+#   .venv\Scripts\python -m ipykernel install --user --name roberta-intent --display-name "Python 3.12 (roberta-intent)"
+
+# General Purpose Libraries ==========
+numpy               # Fundamental package for numerical computations in Python.
+pandas                     # Data manipulation and analysis library.
+scikit-learn               # Machine learning library for classification, regression, and clustering.
+tqdm                       # Progress bar for loops and iterables.
+joblib
+matplotlib                 # Plotting library for training curves and confusion matrices.
+
+# Deep Learning Frameworks ===============
+torch                      # PyTorch: Deep learning framework with GPU support.
+
+# NLP-Specific Libraries ================
+nltk                       # Natural Language Toolkit for text processing and analysis.
+transformers             # Library for state-of-the-art NLP models (e.g., BERT, GPT).
+deep-translator            # Translation wrapper, used for back-translation data augmentation.
+#spacy                     # Industrial-strength NLP library (depends on numpy 2.0.2).
+
+# AWS
+boto3
