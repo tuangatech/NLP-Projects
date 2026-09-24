@@ -15,7 +15,7 @@ Two approaches to the same problem — classifying customer support utterances i
 
 Each row: `utterance, intent, category, tags`. 27 intents (e.g. `cancel_order`, `get_refund`, `track_order`), fairly balanced (~225–270 rows each in training).
 
-## Approach 1: Fine-tuned RoBERTa (prior experiment, notebook not included in this repo)
+## Approach 1: Fine-tuned RoBERTa ([notebook](../Intent%20Detection%20w%20RoBERTa/Fine-Tuning%20RoBERTa%20for%20Intent%20Recognition.ipynb))
 
 Trains a `RobertaForSequenceClassification` head on top of `roberta-base`:
 
@@ -24,7 +24,15 @@ Trains a `RobertaForSequenceClassification` head on top of `roberta-base`:
 - Training loop: AdamW + cross-entropy loss + cosine annealing LR schedule + gradient clipping.
 - Also explores text augmentation (synonym replacement via GloVe, back-translation, pattern-based paraphrasing) as a way to grow/diversify the training set, though augmented data isn't folded back into the training run in the notebook.
 
-**Result:** 99.76% validation accuracy (best epoch, 5/5). The notebook does not compute an aggregate accuracy on the held-out test split — it only spot-checks 10 random test rows (all correct), so there's no formal test-set number to cite for this approach. This asymmetry is worth keeping in mind when comparing against Jev's eval accuracy below: the RoBERTa model was also directly trained on this data, so it isn't a fair apples-to-apples baseline — it's a full-supervision upper bound to keep in view.
+**Result** (RTX 4070 Laptop GPU, 5 epochs, ~50 s/epoch):
+
+- **Training + validation time:** 255.5 s (4.3 min) in total.
+- **Validation accuracy:** 99.63% (best epoch; used only for early stopping and checkpoint selection).
+- **Test accuracy, full held-out test set:** 99.88% (817/818).
+- **Test accuracy, same 162-row stratified sample as Jev** (first 6 rows per intent): 100% (162/162).
+- **Inference:** 1.4 s for all 818 test rows, ~1.7 ms/sample (batched, local GPU).
+
+The test set was never used for training or checkpoint selection, so these are genuine held-out numbers. The model was still fully supervised on ~6.5k labeled examples of this exact distribution, so it remains an upper-bound reference for Jev's few-shot approach rather than a like-for-like baseline.
 
 ## Approach 2: Jev (few-shot, no training)
 
@@ -53,7 +61,17 @@ The first version picked the first 3 example-pool rows per intent verbatim — w
 - **Timeouts & retries:** each call gets a 20s timeout (`AbortController`) so one stuck request can't hang the whole batch; failures retry up to 2 more times with backoff (longer for `GatewayRateLimitError` specifically).
 - **Output:** live progress (`[N/162] predicted_intent`), a console summary (overall + per-intent accuracy), and `results/jev_predictions.csv` with one row per sample plus an accuracy summary appended as `#`-prefixed comment lines.
 
-**Result:** 98.1% accuracy (160/162 scored, 2 network errors) on the stratified eval sample — competitive with RoBERTa's validation number, achieved with zero training and a handful of examples per intent.
+**Result:** 98.1% accuracy (158/161 scored, 1 network error) on the stratified eval sample — within two points of the fully fine-tuned RoBERTa, achieved with zero training and a handful of examples per intent.
+
+## Comparison (same 162-row stratified sample)
+
+| | RoBERTa (fine-tuned) | Jev (few-shot) |
+|---|---|---|
+| Accuracy on the sample | **100%** (162/162) | 98.1% (158/161 scored, 1 error) |
+| Accuracy on full test set (818) | 99.88% (817/818) | not run (sample only) |
+| Training | 255.5 s on a laptop GPU, ~6.5k labeled examples | none — 3 examples per intent in the prompt |
+| Inference | ~1.7 ms/sample, local | network call per row: hundreds of ms to 15 s+ observed, occasionally rate-limited |
+| Cost / infra | one-time GPU training, model file to host | per-request API cost, AI Gateway key |
 
 ## Setup
 
@@ -87,4 +105,5 @@ results/jev_predictions.csv     Per-row Jev predictions + accuracy summary (gene
 - Jev's `choice` evaluation type is a near-perfect fit for intent classification: no separate few-shot API, but a hand-built `criteria` description per label does the job.
 - Example *diversity* mattered more than example *count* — de-duplicating near-identical few-shot examples per intent improved grounding without adding more of them.
 - The AI Gateway backend's per-request latency is inconsistent (hundreds of ms to 15s+ observed) and occasionally rate-limits under concurrency — a client-side timeout, retry-with-backoff, and request throttle are necessary for a reliable batch run, not optional polish.
-- RoBERTa's reported number (99.76%) is validation accuracy from training, not a held-out test accuracy, and the model was directly fine-tuned on this data — so it's a ceiling reference more than a fair baseline, not a metric on equal footing with Jev's zero-shot test result.
+- On this dataset, supervised fine-tuning wins on accuracy (100% vs 98.1% on the shared sample; 99.88% on the full test set) and by orders of magnitude on inference speed, but it needs labeled data and a training run. Jev gets within ~2 points with no training and 3 examples per intent, at the cost of per-request latency and API spend.
+- The remaining Jev misses are between near-synonymous intents (e.g. `check_invoice` vs `get_invoice`) — a labeling-boundary problem that fine-tuning on thousands of examples learns and a few-shot prompt does not.
